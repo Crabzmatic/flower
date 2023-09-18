@@ -20,6 +20,8 @@ def aggregate(weights: List[NDArrays], s: float) -> NDArrays:
 
 
 def create_pattern(dim: int, cohort_size: int, sparsity: int):
+    return torch.ones(size=(dim, cohort_size))
+
     """Create compression pattern."""
     q = torch.zeros(size=(dim, cohort_size))
     if dim >= cohort_size / sparsity:

@@ -85,7 +85,7 @@ def compare_communication_complexity(
 ):
     """Compare Tamuna with FedAvg based on communication complexity."""
     up_complexities = [
-        np.ceil((cfg.server.s * dim) / cfg.server.clients_per_round),
+        dim // 2,
         dim,
     ]
     down_complexities = [dim, dim]

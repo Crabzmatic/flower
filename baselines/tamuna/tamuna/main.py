@@ -42,7 +42,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     tamuna_histories = run_tamuna(cfg, save_path, testloader, trainloaders)
-    fedavg_histories = run_fedavg(cfg, save_path, testloader, trainloaders)
+    fedavg_histories = run_tamuna(cfg, save_path, testloader, trainloaders, quantization="fp16")
 
     with open("model_dim.txt", "rt") as f:
         dim = int(f.readline())
@@ -122,6 +122,7 @@ def run_tamuna(
     save_path: str,
     testloader: DataLoader,
     trainloaders: List[DataLoader],
+    quantization: str = "fp32"
 ):
     """Run Tamuna.
 
@@ -147,6 +148,7 @@ def run_tamuna(
         learning_rate=cfg.client.learning_rate,
         model=cfg.model,
         client_device=cfg.client.client_device,
+        quantization=quantization
     )
 
     # using only central evaluation
@@ -186,7 +188,7 @@ def run_tamuna(
                 epochs_per_round=epochs_per_round,
                 eta=cfg.client.eta,
                 s=cfg.server.s,
-                evaluate_fn=evaluate_fn,
+                evaluate_fn=evaluate_fn
             ),
         )
 

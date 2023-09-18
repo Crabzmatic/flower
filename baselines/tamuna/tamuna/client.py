@@ -7,6 +7,8 @@ from typing import Callable, Dict, List, Tuple
 
 import flwr as fl
 import torch
+from torch import nn
+import numpy as np
 from flwr.common.typing import NDArrays, Scalar
 from hydra.utils import instantiate
 from omegaconf import DictConfig
@@ -14,6 +16,21 @@ from torch.utils.data import DataLoader
 
 from tamuna.models import fedavg_train, tamuna_train
 from tamuna.utils import apply_nn_compression
+
+
+def num_weights_greater_than_1(net: nn.Module):
+    total = 0
+    for p in net.parameters():
+        cpu_p = p.cpu()
+        total += np.count_nonzero(cpu_p.data > 1)
+    return total
+
+
+def quantize(net, quantization):
+    if quantization == "fp16":
+        return net.half()
+    else:
+        return net
 
 
 class TamunaClient(fl.client.NumPyClient):
@@ -27,6 +44,7 @@ class TamunaClient(fl.client.NumPyClient):
         trainloader: DataLoader,
         device: torch.device,
         learning_rate: float,
+        quantization: str,
         cid: str,
     ):
         self.net = net
@@ -36,6 +54,7 @@ class TamunaClient(fl.client.NumPyClient):
         self.control_variate = None
         self.old_compression_mask = None
         self.old_compressed_net = None
+        self.quantization = quantization
         self.cid = cid
 
         self.state_file_name = f"{TamunaClient.STATE_DIR}/{self.cid}_state.bin"
@@ -86,7 +105,14 @@ class TamunaClient(fl.client.NumPyClient):
             lr=self.learning_rate,
         )
 
-        self.net = apply_nn_compression(self.net, mask)
+        # total_g1 = num_weights_greater_than_1(self.net)
+        # print(f"Number of weights greater than 1 on client {self.cid}: {total_g1}")
+
+        # print(self.net.state_dict())
+        self.net = quantize(self.net, self.quantization)
+        # print(self.net.state_dict())
+
+        # self.net = apply_nn_compression(self.net, mask)
 
         self.__save_state(mask)
 
@@ -159,6 +185,7 @@ def gen_tamuna_client_fn(
     learning_rate: float,
     model: DictConfig,
     client_device: str,
+    quantization: str = "fp32"
 ) -> Callable[[str], TamunaClient]:
     """Generate the client function that creates Tamuna clients.
 
@@ -190,7 +217,7 @@ def gen_tamuna_client_fn(
         # will train on their own unique data
         trainloader = trainloaders[int(cid)]
 
-        return TamunaClient(net, trainloader, device, learning_rate, cid)
+        return TamunaClient(net, trainloader, device, learning_rate, quantization=quantization, cid=cid)
 
     return tamuna_client_fn
 
