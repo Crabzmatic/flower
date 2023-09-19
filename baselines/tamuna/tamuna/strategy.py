@@ -95,6 +95,7 @@ class TamunaStrategy(Strategy):
                 "epochs": self.epochs_per_round[server_round - 1],
                 "eta": self.eta,
                 "mask": self.compression_pattern[:, i],
+                "round_id": server_round
             }
             client_fit_ins.append(FitIns(parameters, config))
 

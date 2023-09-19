@@ -41,7 +41,8 @@ def main(cfg: DictConfig) -> None:
         num_clients=cfg.server.num_clients, iid=cfg.dataset.iid
     )
 
-    tamuna_histories = run_tamuna(cfg, save_path, testloader, trainloaders)
+    tamuna_histories = run_tamuna(cfg, save_path, testloader, trainloaders, quantization="fp16")
+    exit()
     fedavg_histories = run_tamuna(cfg, save_path, testloader, trainloaders, quantization="fp16")
 
     with open("model_dim.txt", "rt") as f:

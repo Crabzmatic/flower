@@ -1,11 +1,17 @@
 """Defines the MNIST Flower Client and a function to instantiate it."""
 import copy
+import datetime
 import os
 import pickle
+import uuid
+
+from datetime import time
+
 from collections import OrderedDict
 from typing import Callable, Dict, List, Tuple
 
 import flwr as fl
+import matplotlib.pyplot as plt
 import torch
 from torch import nn
 import numpy as np
@@ -31,6 +37,13 @@ def quantize(net, quantization):
         return net.half()
     else:
         return net
+
+
+def flatten(net):
+    flattened_weights = []
+    for ly in net.parameters():
+        flattened_weights.extend(torch.flatten(ly.data).tolist())
+    return flattened_weights
 
 
 class TamunaClient(fl.client.NumPyClient):
@@ -113,6 +126,11 @@ class TamunaClient(fl.client.NumPyClient):
         # print(self.net.state_dict())
 
         # self.net = apply_nn_compression(self.net, mask)
+
+        all_weights_flattened = flatten(self.net)
+        plt.hist(all_weights_flattened, bins='auto', range=(-0.05, 0.05))
+        plt.savefig(f"hist_{self.cid}_{config['round_id']}.png")
+        plt.close()
 
         self.__save_state(mask)
 
